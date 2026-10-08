@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node / React
+node_modules/
+dist/
+
+# Secrets and environment files
+.env
+
+# Windows / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
