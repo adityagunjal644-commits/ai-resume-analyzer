@@ -2,6 +2,7 @@ import io
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pypdf import PdfReader
+from skills import extract_skills
 
 app = FastAPI()
 
@@ -31,4 +32,10 @@ async def upload_resume(file: UploadFile = File(...)):
     if not text.strip():
         raise HTTPException(status_code=422, detail="Could not extract text from this PDF")
 
-    return {"filename": file.filename, "pages": len(reader.pages), "text": text}
+    skills = extract_skills(text)
+    return {
+        "filename": file.filename,
+        "pages": len(reader.pages),
+        "skills": skills,
+        "text": text,
+    }
