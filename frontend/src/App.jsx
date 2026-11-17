@@ -85,6 +85,20 @@ function App() {
           {result.missing_skills.map((s) => (
             <span key={s} className="tag missing">{s}</span>
           ))}
+
+          <h3>Strengths</h3>
+          <ul>
+            {result.strengths.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+
+          <h3>How to Improve</h3>
+          <ul>
+            {result.suggestions.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

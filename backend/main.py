@@ -4,7 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pypdf import PdfReader
 from skills import extract_skills
 from scoring import compare_skills
-from recommendation import generate_recommendations
+from recommendations import generate_recommendations
+from llm import get_ai_feedback
+
 app = FastAPI()
 
 app.add_middleware(
@@ -64,10 +66,15 @@ async def analyze(file: UploadFile = File(...), job_description: str = Form(...)
         result["matched_skills"], result["missing_skills"], result["score"]
     )
 
+    ai_feedback = get_ai_feedback(
+        text, job_description, result["matched_skills"], result["missing_skills"]
+    )
+
     return {
         "filename": file.filename,
         "resume_skills": resume_skills,
         "job_skills": jd_skills,
         **result,
         **recs,
+        "ai_feedback": ai_feedback,
     }
