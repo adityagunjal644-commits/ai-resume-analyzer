@@ -247,3 +247,25 @@ button:disabled {
 .error {
   color: #b91c1c;
 }
+.ai-card {
+  border-left: 4px solid #4f46e5;
+}
+
+.ai-card h4 {
+  margin: 16px 0 6px;
+  color: #4f46e5;
+}
+
+.ai-card ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ai-card li {
+  margin-bottom: 6px;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 14px;
+}
