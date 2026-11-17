@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 
 const RING_LENGTH = 339.29; // circumference of the score ring (r = 54)
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function getVerdict(score) {
   if (score >= 80) return { label: "Strong match", color: "#0f766e" };
@@ -69,7 +70,7 @@ function App() {
     formData.append("job_description", jobDescription);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/analyze", {
+      const res = await fetch(`${API_URL}/analyze`, {
         method: "POST",
         body: formData,
       });

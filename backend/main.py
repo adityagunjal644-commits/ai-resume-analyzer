@@ -16,47 +16,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MIN_JD_LENGTH = 30
+MAX_JD_LENGTH = 20000
+
+
+async def read_pdf_text(file: UploadFile):
+    """Validate the upload and return (text, page_count)."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are allowed. Upload your resume as a PDF.",
+        )
+
+    contents = await file.read()
+
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="This PDF is larger than 5 MB. Upload a smaller file.",
+        )
+
+    try:
+        reader = PdfReader(io.BytesIO(contents))
+        pages = len(reader.pages)
+        text = "".join((page.extract_text() or "") + "\n" for page in reader.pages)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read this PDF. It may be corrupted or password protected.",
+        )
+
+    if not text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="No text found in this PDF. It may be a scanned image. "
+            "Upload a text-based PDF exported from Word or Google Docs.",
+        )
+
+    return text, pages
+
+
 @app.get("/")
 def home():
     return {"message": "Resume Analyzer API is running"}
 
+
 @app.post("/upload-resume")
 async def upload_resume(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-
-    contents = await file.read()
-    reader = PdfReader(io.BytesIO(contents))
-
-    text = ""
-    for page in reader.pages:
-        text += (page.extract_text() or "") + "\n"
-
-    if not text.strip():
-        raise HTTPException(status_code=422, detail="Could not extract text from this PDF")
-
-    skills = extract_skills(text)
+    text, pages = await read_pdf_text(file)
     return {
         "filename": file.filename,
-        "pages": len(reader.pages),
-        "skills": skills,
+        "pages": pages,
+        "skills": extract_skills(text),
         "text": text,
     }
 
+
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...), job_description: str = Form(...)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    job_description = job_description.strip()
 
-    contents = await file.read()
-    reader = PdfReader(io.BytesIO(contents))
+    if len(job_description) < MIN_JD_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail="The job description is too short. Paste the full job posting.",
+        )
+    if len(job_description) > MAX_JD_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail="The job description is too long. Paste only the key sections.",
+        )
 
-    text = ""
-    for page in reader.pages:
-        text += (page.extract_text() or "") + "\n"
-
-    if not text.strip():
-        raise HTTPException(status_code=422, detail="Could not extract text from this PDF")
+    text, _ = await read_pdf_text(file)
 
     resume_skills = extract_skills(text)
     jd_skills = extract_skills(job_description)
