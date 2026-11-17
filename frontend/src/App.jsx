@@ -1,19 +1,92 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import "./App.css";
 
 function App() {
-  const [message, setMessage] = useState("Loading...");
+  const [file, setFile] = useState(null);
+  const [jobDescription, setJobDescription] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/")
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch(() => setMessage("Could not reach backend"));
-  }, []);
+  async function handleAnalyze() {
+    if (!file || !jobDescription.trim()) {
+      setError("Please upload a PDF resume and paste a job description.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("job_description", jobDescription);
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Something went wrong");
+      }
+
+      setResult(await res.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div>
+    <div className="container">
       <h1>AI Resume Analyzer</h1>
-      <p>Backend says: {message}</p>
+
+      <div className="card">
+        <h3>1. Upload your resume (PDF)</h3>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
+      </div>
+
+      <div className="card">
+        <h3>2. Paste the job description</h3>
+        <textarea
+          value={jobDescription}
+          onChange={(e) => setJobDescription(e.target.value)}
+          placeholder="Paste the job description here..."
+        />
+      </div>
+
+      <button onClick={handleAnalyze} disabled={loading}>
+        {loading ? "Analyzing..." : "Analyze"}
+      </button>
+
+      {error && <p className="error">{error}</p>}
+
+      {result && (
+        <div className="card" style={{ marginTop: 20 }}>
+          <h3>ATS Match Score</h3>
+          <div className="score">{result.score}%</div>
+
+          <h3>Matched Skills</h3>
+          {result.matched_skills.length === 0 && <p>None found</p>}
+          {result.matched_skills.map((s) => (
+            <span key={s} className="tag match">{s}</span>
+          ))}
+
+          <h3>Missing Skills</h3>
+          {result.missing_skills.length === 0 && <p>None. Great match!</p>}
+          {result.missing_skills.map((s) => (
+            <span key={s} className="tag missing">{s}</span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
